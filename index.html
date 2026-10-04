@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PromptShelf - Free AI prompts for images, video and text</title>
+<meta name="description" content="Copy-ready AI prompts for image, video and text tools. Browse, search and copy.">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef0f3;--ink:#15181e;--mute:#5d6572;--line:#d5d9e0;--acc:#4f46e5;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+header,main,footer{max-width:1100px;margin:0 auto;padding:0 16px}
+header{padding-top:28px}
+h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+header p{color:var(--mute);margin:0 0 20px;max-width:46ch}
+input[type=search]{width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+.tabs{display:flex;gap:8px;margin:14px 0 18px;overflow-x:auto}
+.tabs button{border:1px solid var(--line);background:#fff;padding:8px 16px;border-radius:99px;font:inherit;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{columns:2;column-gap:12px}
+@media(min-width:700px){.grid{columns:3}}
+@media(min-width:960px){.grid{columns:4}}
+.card{break-inside:avoid;margin:0 0 12px;background:var(--card);border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid var(--line)}
+.card img,.card video{display:block;width:100%;height:auto;background:#dfe3e8}
+.sheet video{width:100%;border-radius:12px;display:block;max-height:60vh;background:#000}
+.sheet iframe.yt{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;display:block}
+.play{position:relative}.play:after{content:'\25B6';position:absolute;right:10px;top:10px;background:rgba(0,0,0,.6);color:#fff;border-radius:99px;width:28px;height:28px;display:grid;place-items:center;font-size:12px}
+.card div{padding:10px 12px;font-weight:600;font-size:.92rem}
+.card:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.adbox{break-inside:avoid;margin:0 0 12px}
+iframe.ad{width:100%;border:0;display:block;max-width:100%}
+.adwide{margin:0 0 16px;text-align:center}
+.empty{padding:40px 0;color:var(--mute)}
+#modal{position:fixed;inset:0;background:rgba(15,18,24,.7);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#modal.open{display:flex}
+.sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+@media(min-width:700px){#modal{align-items:center}.sheet{border-radius:20px}}
+.sheet img{width:100%;border-radius:12px;display:block;max-height:50vh;object-fit:contain;background:var(--bg)}
+.sheet h2{margin:14px 0 4px}
+.cat{color:var(--mute);font-size:.9rem}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);padding:14px;border-radius:12px;font:14px/1.5 ui-monospace,monospace;margin:12px 0}
+.row{display:flex;gap:8px}
+.btn{flex:1;padding:14px;border:0;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;background:var(--acc);color:#fff}
+.btn.alt{background:var(--bg);color:var(--ink)}
+footer{padding:28px 16px 40px;color:var(--mute);font-size:.9rem}
+footer a{color:inherit;margin-right:14px;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>Prompts worth copying.</h1>
+  <p>Ready-made prompts for AI image, video and text tools. Tap a card, copy the prompt, make your own.</p>
+  <input type="search" id="q" placeholder="Search prompts" aria-label="Search prompts">
+  <div class="tabs" id="tabs"></div>
+</header>
+<main>
+  <div id="adTop" class="adwide"></div>
+  <div class="grid" id="grid"></div>
+  <div id="empty" class="empty" hidden>No prompts found. Try another word or category.</div>
+  <div id="adBottom" class="adwide"></div>
+</main>
+<footer>
+  <a data-page="about">About</a><a data-page="privacy">Privacy policy</a><a data-page="contact">Contact</a>
+  <p>&copy; <span id="yr"></span> PromptShelf</p>
+</footer>
+
+<div id="modal" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+// ====== EDIT THESE TWO LINES (Supabase > Project Settings > API) ======
+const SUPABASE_URL = "https://zuutxcmbbtfzftubfubj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1dXR4Y21iYnRmemZ0dWJmdWJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMDY2MDMsImV4cCI6MjEwNjY4MjYwM30.kkFV2YKGYENL6quq6qbeLtYU0i4n9HnN6XUc68oxNnk";
+// ======================================================================
+const CONTACT_EMAIL = "qsumon1@email.com";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const CATS = ["All","Image","Video","Text"];
+let all = [], cat = "All", term = "", ads = {};
+const $ = id => document.getElementById(id);
+function ytId(u){ const m = (u||"").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; }
+function thumb(p){
+  if (p.image_url) { const i = document.createElement("img"); i.loading = "lazy"; i.alt = p.title; i.src = p.image_url; return i; }
+  const y = ytId(p.video_url);
+  if (y) { const i = document.createElement("img"); i.loading = "lazy"; i.alt = p.title; i.src = "https://img.youtube.com/vi/" + y + "/hqdefault.jpg"; return i; }
+  if (p.video_url) { const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "metadata"; v.src = p.video_url + "#t=0.5"; return v; }
+  return null;
+}
+function modalMedia(p){
+  const y = ytId(p.video_url);
+  if (y) { const f = document.createElement("iframe"); f.className = "yt"; f.allowFullscreen = true;
+    f.src = "https://www.youtube-nocookie.com/embed/" + y; return f; }
+  if (p.video_url) { const v = document.createElement("video"); v.controls = true; v.playsInline = true; v.preload = "metadata";
+    if (p.image_url) v.poster = p.image_url; v.src = p.video_url; return v; }
+  if (p.image_url) { const i = document.createElement("img"); i.src = p.image_url; i.alt = p.title; return i; }
+  return null;
+}
+
+function adFrame(code, h){
+  const f = document.createElement("iframe");
+  f.className = "ad"; f.style.height = h + "px";
+  f.setAttribute("scrolling","no");
+  f.srcdoc = '<body style="margin:0;display:flex;justify-content:center">' + code + '</body>';
+  return f;
+}
+function mountAd(id, code, h){
+  const el = $(id); el.innerHTML = "";
+  if (code && code.trim()) el.appendChild(adFrame(code, h));
+}
+function renderTabs(){
+  $("tabs").innerHTML = "";
+  CATS.forEach(c => {
+    const b = document.createElement("button");
+    b.textContent = c; if (c === cat) b.className = "on";
+    b.onclick = () => { cat = c; renderTabs(); renderGrid(); };
+    $("tabs").appendChild(b);
+  });
+}
+function renderGrid(){
+  const g = $("grid"); g.innerHTML = "";
+  const list = all.filter(p =>
+    (cat === "All" || p.category === cat) &&
+    (p.title + " " + p.prompt).toLowerCase().includes(term));
+  $("empty").hidden = list.length > 0;
+  list.forEach((p, i) => {
+    const c = document.createElement("div");
+    c.className = "card"; c.tabIndex = 0;
+    c.innerHTML = "<div></div>";
+    const m = thumb(p);
+    if (m) { if (p.video_url) c.classList.add("play"); c.prepend(m); }
+    c.querySelector("div").textContent = p.title;
+    c.onclick = () => openPrompt(p);
+    c.onkeydown = e => { if (e.key === "Enter") openPrompt(p); };
+    g.appendChild(c);
+    if ((i + 1) % 8 === 0 && ads.ad_inline && ads.ad_inline.trim()) {
+      const w = document.createElement("div");
+      w.className = "adbox"; w.appendChild(adFrame(ads.ad_inline, 260)); g.appendChild(w);
+    }
+  });
+}
+function openPrompt(p){
+  const s = $("sheet"); s.innerHTML = "";
+  const mm = modalMedia(p); if (mm) s.appendChild(mm);
+  const h = document.createElement("h2"); h.textContent = p.title; s.appendChild(h);
+  const c = document.createElement("div"); c.className = "cat"; c.textContent = p.category; s.appendChild(c);
+  const pre = document.createElement("pre"); pre.textContent = p.prompt; s.appendChild(pre);
+  if (ads.ad_modal && ads.ad_modal.trim()) s.appendChild(adFrame(ads.ad_modal, 260));
+  const row = document.createElement("div"); row.className = "row";
+  const cp = document.createElement("button"); cp.className = "btn"; cp.textContent = "Copy prompt";
+  cp.onclick = async () => {
+    try { await navigator.clipboard.writeText(p.prompt); cp.textContent = "Copied"; }
+    catch { cp.textContent = "Press and hold the text to copy"; }
+    setTimeout(() => cp.textContent = "Copy prompt", 1800);
+  };
+  const cl = document.createElement("button"); cl.className = "btn alt"; cl.textContent = "Close"; cl.onclick = closeModal;
+  row.append(cp, cl); s.appendChild(row);
+  $("modal").classList.add("open");
+}
+function closeModal(){ $("modal").classList.remove("open"); }
+$("modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
+document.onkeydown = e => { if (e.key === "Escape") closeModal(); };
+$("q").oninput = e => { term = e.target.value.toLowerCase(); renderGrid(); };
+$("yr").textContent = new Date().getFullYear();
+
+const PAGES = {
+  about: ["About", "PromptShelf is a free collection of AI prompts for image, video and text tools. New prompts are added regularly."],
+  privacy: ["Privacy policy", "We do not ask you to create an account. This site uses third-party advertising (Adsterra), which may use cookies to show ads. You can turn off cookies in your browser settings. We do not sell your personal data."],
+  contact: ["Contact", "Email us at " + CONTACT_EMAIL + " for questions, removal requests or business enquiries."]
+};
+document.querySelectorAll("footer a").forEach(a => a.onclick = () => {
+  const [t, b] = PAGES[a.dataset.page];
+  const s = $("sheet"); s.innerHTML = "";
+  const h = document.createElement("h2"); h.textContent = t;
+  const p = document.createElement("p"); p.textContent = b;
+  const x = document.createElement("button"); x.className = "btn alt"; x.textContent = "Close"; x.onclick = closeModal;
+  s.append(h, p, x); $("modal").classList.add("open");
+});
+
+(async function init(){
+  renderTabs();
+  const [p, s] = await Promise.all([
+    db.from("prompts").select("*").order("created_at", { ascending: false }),
+    db.from("settings").select("*")
+  ]);
+  all = p.data || [];
+  if (p.error) { $("empty").hidden = false; $("empty").textContent = "Error: " + p.error.message; }
+  (s.data || []).forEach(r => ads[r.key] = r.value);
+  mountAd("adTop", ads.ad_top, 100);
+  mountAd("adBottom", ads.ad_bottom, 100);
+  renderGrid();
+})();
+</script>
+</body>
+</html>
